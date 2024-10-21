@@ -38,7 +38,7 @@ function lanczosfilter(x,dT,Cf,M,pass)
 #  
 #   In consequence, when used as a low-pass the time series is smoothed   
 #   like a cosine filter in time space with M coefficients where greater is
-#   better (see the reference).    
+#   better.    
     
     Nd =  size(x)[1];
     
@@ -81,13 +81,33 @@ end
 
 
 function filter(month_array, u, theta, q, ha, Qbar, Hbar, γ, Tₐ, times, Nt, Nx, NUM_REPEAT)
-    #step 1: daily mean data OK
-    sim_day = floor.(times*Tₐ/24)
+    
+    """ Performs the 20-100 days filtering method described in Stachnik et al. 2015
+
+    INPUTS: 
+    - month_array: array of months corresponding to each time step of simulation (based on forcing)
+    - u: zonal wind
+    - theta: potential temperature
+    - q: specific humidity
+    - ha: convective activity
+    - Qbar: mean background vertical moisture gradient
+    - Hbar: scaling constant for convective activity
+    - γ: parameter, comes from projection on first Hermite modes meridionally
+    - Tₐ: dimensionalization constant for time
+    - times: simulation time [non-dimensional] corresponding to the data provided, separated by Δt 
+    - Nt: number of time steps
+    - Nx: number of grid points
+    - NUM_REPEAT: number of independent simulation runs
+    
+    """
+    
+    #step 1: daily mean data 
+    sim_day = floor.(times*Tₐ/24) # simulation day corresponding to each time step 
     u_daily = zeros(Nx, NUM_REPEAT, length(unique(sim_day)))
     ha_daily = zeros(Nx, NUM_REPEAT, length(unique(sim_day)))
     q_daily = zeros(Nx, NUM_REPEAT, length(unique(sim_day)))
     theta_daily = zeros(Nx, NUM_REPEAT, length(unique(sim_day)))
-    months_tracked = zeros(length(unique(sim_day)))
+    months_tracked = zeros(length(unique(sim_day))) # for each simulation day, the corresponding month
     
     i=1
     for d in unique(sim_day)
@@ -110,7 +130,7 @@ function filter(month_array, u, theta, q, ha, Qbar, Hbar, γ, Tₐ, times, Nt, N
     
     sim_day = unique(sim_day);
     Nd = length(sim_day); 
-    println("step 1")
+    println("STEP: daily means computed")
     
     # step 2: remove the long term mean OK
     #u_daily = u_daily .- mean(u_daily, dims = 3);
@@ -120,7 +140,7 @@ function filter(month_array, u, theta, q, ha, Qbar, Hbar, γ, Tₐ, times, Nt, N
     ha_daily_anom = zeros(size(ha_daily));
     q_daily_anom = zeros(size(q_daily));
     theta_daily_anom = zeros(size(theta_daily));
-    println("step 2")
+    
     
     # step 3: remove mean and first three harmonics of the annual cycle (ie periods 12 months, 6 months and 4 months, corresponding to 1,2 and 3 cycle per year)
     for nr in 1:NUM_REPEAT
@@ -143,7 +163,7 @@ function filter(month_array, u, theta, q, ha, Qbar, Hbar, γ, Tₐ, times, Nt, N
             theta_daily_anom[pt,nr,:] = real(ifft(ifftshift(thetaH)));
         end
     end
-    println("step 3")
+    println("STEP: removed mean and first three harmonics of the annual cycle")
     
     # step 4: apply Lanczos cosine filder with cutoff 20–100 days and 201 weights 
     M = 100 # that is 2M+1=201 weights
@@ -183,7 +203,7 @@ function filter(month_array, u, theta, q, ha, Qbar, Hbar, γ, Tₐ, times, Nt, N
     ha_daily_filtered = yha;
     q_daily_filtered = yq;
     theta_daily_filtered = ytheta;
-    println("step 4")
+    println("STEP: applied Lanczos cosine filder with cutoff 20–100 days and 201 weights")
     
     return sim_day, months_tracked, u_daily, u_daily_filtered, ha_daily, ha_daily_filtered, q_daily, q_daily_filtered, theta_daily, theta_daily_filtered
   

@@ -2,12 +2,9 @@ module smm
 
 export SMM
 
-using LinearAlgebra
-using Statistics
-using JLD
-using Interpolations
+#using LinearAlgebra
+#using Statistics
 
-using Pandas: read_pickle
 
 
 function SMM(sim_days, u_daily_filtered, ha_daily_filtered)

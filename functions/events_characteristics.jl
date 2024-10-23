@@ -1,10 +1,10 @@
 module events
 
-#export identify
-using PyPlot
-using FFTW
 
-
+#using LinearAlgebra
+#using Statistics
+#using FFTW
+#using PyPlot
 
 function circleShape(h,k,r)
     θ = LinRange(0, 2*π, 500);
@@ -111,7 +111,10 @@ end
 
 
 function identify(amplitude, phase)
-    """ Given the amplitude and phase of the SMM index, identify MJO events according to the criteria described in Stachnik et al., 2015"""
+    """ 
+        Given the amplitude and phase of the SMM index, identify MJO events according to the criteria described in Stachnik et al., 2015
+        Returns a sequence of tuples representing the start and end indices (simulation days) of each event.
+    """
 
     # step 1: identify days with sufficient amplitude 
     indices1 = findall(x->x>=1, amplitude); # days where amplitude is >=1
@@ -394,6 +397,25 @@ end
 
 
 function div_seq_ENSO_phases(seq, years_tracked, months_tracked, ENSO_ym, ENSO_phases)
+
+    """
+        Classifies MJO events based on the corresponding ENSO phases. 
+        If an MJO event occurs over more than one ENSO phase, the dominant phase is chosen. 
+
+        ### Inputs:
+        - 'seq': sequence of tupples (start_idx, end_idx) representing the start and end indices of MJO events.
+        - 'years_tracked', 'months_tracked': lists mapping each index to a year, month
+        - 'ENSO_ym': list of dates for which ENSO phases are tracked
+        - 'ENSO_phases': list of ENSO phases corresponding to the dates in 'ENSO_ym'
+
+        ### Outputs:
+        - 'seqN': Subset of MJO events that occurred predominantly during Neutral ENSO phases.
+        - 'seqEN': Subset of MJO events that occurred predominantly during El Niño phases.
+        - 'seqLN': Subset of MJO events that occurred predominantly during La Niña phases.
+        - 'frac': fraction of time each MJO event spent in Neutral, El Niño, and La Niña phases, respectively. 
+
+    """
+
     sep = zeros(size(seq)[1]); # contains the phase of ENSO for each event (as -1/0/+1 for LN/N/EN)
     frac = zeros(size(seq)[1], 3); 
     # for each MJO event
@@ -425,16 +447,49 @@ function div_seq_ENSO_phases(seq, years_tracked, months_tracked, ENSO_ym, ENSO_p
     seqEN = seq[findall(x->x==1, sep),:];
     seqLN = seq[findall(x->x==-1, sep),:];
     
-    return seqN, seqEN, seqLN, frac
-            
+    return seqN, seqEN, seqLN, frac        
 end
+
+
+
 
 
 function number(seq)
+    """ 
+        Inputs: 
+        - 'seq': sequence of tupples (start_idx, end_idx) representing the start and end indices of MJO events
+        Outputs:
+        - total number of MJO events
+    """
     return size(seq)[1];
 end
 
+
+function seasonality(seq, months_tracked)
+    """ 
+        Count number of MJO events occuring during each month of the year. 
+    """
+    seasonal_var_local = zeros(12);
+    num_events = size(seq)[1];
+    for i in 1:num_events
+        m1 = Int(seq[i,1]);
+        m2 = Int(seq[i,2]);
+        event_months = months_tracked[m1:m2];
+        for em in unique(event_months)
+            seasonal_var_local[Int(em)]+=1;
+        end
+    end
+    return seasonal_var_local
+end
+
+
 function total_angle(seq, phase)
+    """ 
+        Inputs:
+        - 'seq': sequence of tupples (start_idx, end_idx) representing the start and end indices of MJO events
+        - 'phase': phase of the Skeleton Multivariate MJO index for each simulation day
+        Output: total angle covered by each MJO event in the (SMM1,SMM2) diagram.
+    """
     num_events = size(seq)[1];
     distances = zeros(num_events); 
     for i in 1:num_events;
@@ -450,11 +505,10 @@ function total_angle(seq, phase)
 end
 
 
-
-
-
-
 function duration(seq)
+    """ 
+        Output: lifetime (in days) of each MJO event in the sequence.
+    """
     durations = zeros(size(seq)[1]);
     for i in 1:size(seq)[1]
         durations[i] = Int(seq[i,2])-Int(seq[i,1])+1;
@@ -463,6 +517,9 @@ function duration(seq)
 end
 
 function max_amplitude(seq, amplitude, phase)
+    """ 
+        Output: maximum amplitude of the SMM index and its corresponding phase for each MJO event in the sequence.
+    """
     max_amplitude = zeros(size(seq)[1]);
     max_ampl_location = zeros(size(seq)[1]); 
     
@@ -475,7 +532,13 @@ function max_amplitude(seq, amplitude, phase)
     return max_amplitude, max_ampl_location;
 end
 
+
+
 function phase_space_diagram(SMM1, SMM2, ii1, ii2, amplitude, f1, f2, jj1, jj2, L1, L2, ft)
+
+    """ 
+        Plot (SMM1,SMM2) diagram, illustrating the MJO events.
+    """    
     fig, axs = subplots(1,1, figsize = (6,6))
     
     #plot a circle of radius 1
@@ -536,15 +599,11 @@ end
 
 
 
-
-
-
-
-
-
-
 function starting_phase(seq, phase)
-    # number of events starting in each phase
+    """ 
+        Output: number of events starting in each phase
+    """
+
     sp = zeros(8);
     num_events = size(seq)[1];
     for i in 1:num_events
@@ -572,7 +631,10 @@ function starting_phase(seq, phase)
 end
 
 function ending_phase(seq, phase)
-    # number of events stoping in each phase
+    """ 
+        Output: number of events stoping in each phase
+    """
+    
     ep = zeros(8);
     num_events = size(seq)[1];
     for i in 1:num_events
@@ -598,61 +660,6 @@ function ending_phase(seq, phase)
     end
     return ep
 end
-
-function sep(seq, phase)
-     # number of events stoping in each phase
-    num_events = size(seq)[1];
-    sp = zeros(num_events);
-    ep = zeros(num_events);
-    
-    for i in 1:num_events
-        d1 = Int(seq[i,1]);
-        d2 = Int(seq[i,2]);
-        p1 = phase[d1];
-        p2 = phase[d2];
-        
-        if (p1<=π/4.0)&(p1>0) # phase 5 
-            sp[i] = 5; 
-        elseif (p1<=π/2.0)&(p1>π/4.0) # phase 6
-            sp[i] = 6;
-        elseif (p1<=3*π/4.0)&(p1>π/2.0) # phase 7
-            sp[i] = 7; 
-        elseif (p1<=π)&(p1>3*π/4.0) # phase 8
-            sp[i] = 8; 
-        elseif (p1<=-3*π/4.0)&(p1>-π) # phase 1
-            sp[i] = 1; 
-        elseif (p1<=-π/2.0)&(p1>-3*π/4.0) # phase 2 
-            sp[i] = 2; 
-        elseif (p1<=-π/4.0)&(p1>-π/2.0) # phase 3
-            sp[i] = 3; 
-        elseif (p1<=0)&(p1>-π/4.0) # phase 4 
-            sp[i] = 4; 
-        end
-        
-        if (p2<=π/4.0)&(p2>0) # phase 5 
-            ep[i] = 5; 
-        elseif (p2<=π/2.0)&(p2>π/4.0) # phase 6
-            ep[i] = 6;
-        elseif (p2<=3*π/4.0)&(p2>π/2.0) # phase 7
-            ep[i] = 7; 
-        elseif (p2<=π)&(p2>3*π/4.0) # phase 8
-            ep[i] = 8; 
-        elseif (p2<=-3*π/4.0)&(p2>-π) # phase 1
-            ep[i] = 1; 
-        elseif (p2<=-π/2.0)&(p2>-3*π/4.0) # phase 2 
-            ep[i] = 2; 
-        elseif (p2<=-π/4.0)&(p2>-π/2.0) # phase 3
-            ep[i] = 3; 
-        elseif (p2<=0)&(p2>-π/4.0) # phase 4 
-            ep[i] = 4; 
-        end
-        
-    end
-    return collect(zip(sp,ep))
-end
-
-
-
 
 
 

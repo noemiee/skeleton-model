@@ -8,6 +8,9 @@ export SMM
 
 
 function SMM(sim_days, u_daily_filtered, ha_daily_filtered)
+    """
+       Implementation of the Skeleton Multivariate MJO index, as presented in [Stachnik et al., 2015](https://doi.org/10.1002/2015JD023916) based on the Real-Time Multivariate MJO index (RMM) by [Wheeler and Hendon (2004)](https://doi.org/10.1175/1520-0493(2004)132%3C1917:AARMMI%3E2.0.CO;2).
+    """
     # INPUT: daily data, filtered
     Nd = size(u_daily_filtered)[end];
     

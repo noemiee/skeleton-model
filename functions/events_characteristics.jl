@@ -112,7 +112,7 @@ end
 
 function identify(amplitude, phase)
     """ 
-        Given the amplitude and phase of the SMM index, identify MJO events according to the criteria described in Stachnik et al., 2015
+        Given the amplitude and phase of the SMM index, identify MJO events according to the criteria described in [Stachnik et al., 2015](https://doi.org/10.1002/2015JD023916)
         Returns a sequence of tuples representing the start and end indices (simulation days) of each event.
     """
 

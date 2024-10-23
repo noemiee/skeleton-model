@@ -7,8 +7,8 @@ This repository implements and analyzes the Stochastic MJO Skeleton Model with t
 To run the notebooks in this repository, ensure you have Python and Julia installed along with the necessary packages (listed below). You can clone the repository using:
 
 ```bash
-git clone https://github.com/yourusername/repository-name.git
-cd repository-name
+git clone https://github.com/noemiee/skeleton-model.git
+cd skeleton-model
 ```
 
 

@@ -1,9 +1,7 @@
 using Pandas: read_pickle
 using DelimitedFiles
 
-SET_TIME_VARIATION = true
-
-################ MODEL PARAMETERS ######################
+################ MODEL PARAMETERS (CONSTANTS) ######################
 
 Hbar = 0.22; #ok (HH)
 Qbar = 0.9; #ok (QQ)
@@ -20,30 +18,34 @@ Tₐ = 8; #[h]
 Uₐ = 50; #[m/s]  
 
 
-############# FORCING PARAMETERS ############################
+############# LOAD FORCING DATA ############################
 
-# load longitudes
+# longitudes & dates
 longitudes = read_pickle("./data/longitudes.pckl");
-
-# load dates
 dates = read_pickle("./data/dates.pckl");
 
-# starting and ending date for the forcing profiles
-d1_y = dates[1].year;
-d1_m = dates[1].month;
-d2_y = dates[end].year;
-d2_m = dates[end].month;
+# extract starting and ending date for forcing profiles
+d1_y, d1_m = dates[1].year, dates[1].month;
+d2_y, d2_m = dates[end].year, dates[end].month;
 
+# profiles (monthly values)
+Sq_ = read_pickle("./data/Sq.pckl"); 
+HbarA = read_pickle("./data/HbarA0.pckl"); 
+Aₛ_ = HbarA./Hbar;
 
-MULTIPLE = 3;
-center = Int(floor(MULTIPLE/2.0));
-REPEAT = 5; # (the first repeated periods are for thermalization and are later deleted)
+#Stheta calculation (not yet computed):  -(1-Qbar)/Qbar*Hbar.*Aₛ_ .+ 1/Qbar.*Sq_; 
 
-# array of dates for reference
-dates_tmp = repeat(dates, REPEAT); 
-dates_tmp = dates_tmp[1+center:end-center];
 
 ################ SIMULATION PARAMETERS ######################
+MULTIPLE = 3; # forcing profiles will be smoothed using a 'MULTIPLE'-months running mean 
+center = Int(floor(MULTIPLE/2.0)); 
+
+REPEAT = 5; # thermalization: repeat the simulation x times to make sure a statistical equilibrium is reached (thermalization data is later deleted)
+
+
+dates_tmp = repeat(dates, REPEAT); # create repeated array of dates for reference
+dates_tmp = dates_tmp[1+center:end-center]; #
+
 
 MONTHS = length(dates_tmp)-1; # number of months to simulate 
 DAYS = 30*(MONTHS); # number of days to simulate (we only have monthly forcing data, so we can choose for simplicity that each month has 30 days)
@@ -52,20 +54,19 @@ DAYS = 30*(MONTHS); # number of days to simulate (we only have monthly forcing d
 L = 26.6666666666666; # [dimensionless], L*D_a = 40000 km
 Nx = 64; # number of grid points
 dx = L/Nx; 
-Δt = 0.5*dx; # [dimentionless], dt*T_a = 1.7 hours #
-T = DAYS*24/Tₐ; # number of hours made dimensionless 
+Δt = 0.5*dx; # [dimentionless], dt*T_a = 1.7 hours 
+T = DAYS*24/Tₐ; # number of hours [dimensionless] 
 Nt = floor(Int, T/Δt);
-# stochastic switch
-dostocha = 1;
+dostocha = 1; # stochastic switch
 
 
-# frequencies
+# spatial frequencies (for fourier transforms)
 κ=2*π*im*fftshift(fftfreq(Nx,Nx))/L;
 
 
-################ SOME FUNCTIONS   ######################
+################ ENSO DATA PROCESSING ######################
 
-
+### some functions ###
 
 function replace_sequences(arr)
     sequences_to_keep = []
@@ -157,10 +158,7 @@ function ONI(ENSO_val)
 end
 
 
-################ FORCING PROFILES AND ENSO DATA ######################
-
-
-################################# load Nino3.4 index
+#### load Nino3.4 index, compute ONI and identify El Niño and La Niña events
 
 ENSO = reshape(readdlm("./data/Nino34.txt"),:,5);
 ENSO_ym = ENSO[2:end,1:2]; # year and month
@@ -184,82 +182,52 @@ ENSO_phases = def_ENSO_phases(ENSO_val);
 # count only 4 consecutive EN / LN as actual El Niño / La Niña events
 ENSO_phases = replace_sequences(ENSO_phases);
 
-########################################
 
-# load profiles for simulations
-Sq_ = read_pickle("./data/Sq.pckl"); # monthly values
+################ FORCING PROFILES INTERPOLATED TO THE TIME STEP OF SIMULATION ######################
 
-
-HbarA = read_pickle("./data/HbarA0.pckl"); # monthly values
-Aₛ_ = HbarA./Hbar;
-
-#Stheta_ = -(1-Qbar)/Qbar*Hbar.*Aₛ_ .+ 1/Qbar.*Sq_; 
-
-Sq     = zeros((Nt,Nx)) # store a profile of Sq at each time step
+Sq     = zeros((Nt,Nx)) # at each time step, store a profile of Sq 
 Stheta = zeros((Nt,Nx))
 Aₛ     = zeros((Nt,Nx))
 
-ENSO_phases_monthly = Array{String}(undef, MONTHS+1);
-
-################################
-
-if SET_TIME_VARIATION == true
-    #Sq_tmp     = zeros((Nx, MONTHS+1)); # monthly values of Sq (+1 necessary for interpolation, see below)
-    #Aₛ_tmp     = zeros((Nx, MONTHS+1));
         
-    Aₛ_tmp = repeat(Aₛ_, REPEAT)';
-    Sq_tmp = repeat(Sq_, REPEAT)';
+Aₛ_tmp = repeat(Aₛ_, REPEAT)';
+Sq_tmp = repeat(Sq_, REPEAT)';
     
-    # MULTIPLE-months running mean for slower change in forcing profiles (essentially smoothing forcing profiles)
-    mean_M_Aₛ_tmp = [mean(Aₛ_tmp[:,i:i+MULTIPLE-1], dims = 2)[:] for i in 1:size(Aₛ_tmp)[2]-MULTIPLE+1];
-    mean_M_Sq_tmp = [mean(Sq_tmp[:,i:i+MULTIPLE-1], dims = 2)[:] for i in 1:size(Sq_tmp)[2]-MULTIPLE+1];
+# smoothing of the forcing profiles via a MULTIPLE-months running mean 
+mean_M_Aₛ_tmp = [mean(Aₛ_tmp[:,i:i+MULTIPLE-1], dims = 2)[:] for i in 1:size(Aₛ_tmp)[2]-MULTIPLE+1];
+mean_M_Sq_tmp = [mean(Sq_tmp[:,i:i+MULTIPLE-1], dims = 2)[:] for i in 1:size(Sq_tmp)[2]-MULTIPLE+1];
 
-    Aₛ_tmp = mapreduce(permutedims, vcat, mean_M_Aₛ_tmp)';
-    Sq_tmp = mapreduce(permutedims, vcat, mean_M_Sq_tmp)';
+Aₛ_tmp = mapreduce(permutedims, vcat, mean_M_Aₛ_tmp)';
+Sq_tmp = mapreduce(permutedims, vcat, mean_M_Sq_tmp)';
    
     
-    #####  interpolate from monthly values to the time step of the simulation (1.7 hourly values)
-    # coarse grid (correspond to Sq_tmp)
-    space_ = 1:64;
-    months_coarse = 0:MONTHS; #index
+#####  interpolate from monthly values to the time step of the simulation (1.7 hourly values)
+# coarse grid (correspond to Sq_tmp)
+space_ = 1:64;
+months_coarse = 0:MONTHS; #index
     
-    # fine grid
-    hours_ = range(Δt, step = Δt, length = Nt);
-    months_fine = hours_*Tₐ/24.0/30; # nth simulated hours correpond to mth simulated months
+# fine grid
+hours_ = range(Δt, step = Δt, length = Nt);
+months_fine = hours_*Tₐ/24.0/30; # nth simulated hours correpond to mth simulated months
 
-    # Interpolate Sq
-    itp = LinearInterpolation((space_, months_coarse), Sq_tmp);
-    Sq_interp = [itp(y,x) for y in space_, x in months_fine];
-    Sq[:,:]=Sq_interp';
+# Interpolate Sq
+itp = LinearInterpolation((space_, months_coarse), Sq_tmp);
+Sq_interp = [itp(y,x) for y in space_, x in months_fine];
+Sq[:,:]=Sq_interp';
     
-    # Interpolate As
-    itp = LinearInterpolation((space_, months_coarse), Aₛ_tmp);
-    Aₛ_interp = [itp(y,x) for y in space_, x in months_fine];
-    Aₛ[:,:]=Aₛ_interp';
+# Interpolate As
+itp = LinearInterpolation((space_, months_coarse), Aₛ_tmp);
+Aₛ_interp = [itp(y,x) for y in space_, x in months_fine];
+Aₛ[:,:]=Aₛ_interp';
     
-    # shift mean of Sq
-    for t in 1:Nt
-        Sq[t,:] = Sq[t,:] .- mean(Sq[t,:]) .+ mean(Aₛ[t,:])*Hbar;
-    end
-    
-    # compute Stheta
-    Stheta = -(1-Qbar)/Qbar*Hbar.*Aₛ .+ 1/Qbar.*Sq;
-    
-    
-    #########################################
-    
-    # select the corresponding ENSO reference 
-    #ENSO_phases = ENSO_phases[1+Int(floor(MULTIPLE/2)):size(ENSO_phases)[1]-MULTIPLE+1+Int(floor(MULTIPLE/2))]; 
-    
-    #ENSO_phases_monthly[1:num_vals*REPEAT] = repeat(ENSO_phases, REPEAT);
-    
-    
-else
-    REPEAT = Nt;
-    Sq[:,:]     = repeat(mean_Sq, REPEAT);
-    Stheta[:,:] = repeat(mean_Stheta, REPEAT);
-    Aₛ[:,:]     = repeat(mean_Aₛ, REPEAT);
+# shift mean of Sq
+for t in 1:Nt
+    Sq[t,:] = Sq[t,:] .- mean(Sq[t,:]) .+ mean(Aₛ[t,:])*Hbar;
 end
+    
+# compute Stheta
+Stheta = -(1-Qbar)/Qbar*Hbar.*Aₛ .+ 1/Qbar.*Sq;
+
 
 # compute temporal mean of profiles
 mean_Aₛ = mean(Aₛ, dims = 1)

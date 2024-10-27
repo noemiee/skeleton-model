@@ -3,8 +3,8 @@ module filters
 export filter
 export lanczosfilter
 
-#using Statistics
-#using FFTW
+using Statistics
+using FFTW
 
 
 function lanczosfilter(x,dT,Cf,M,pass)

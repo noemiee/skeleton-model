@@ -2,8 +2,8 @@ module smm
 
 export SMM
 
-#using LinearAlgebra
-#using Statistics
+using LinearAlgebra
+using Statistics
 
 
 

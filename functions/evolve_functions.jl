@@ -3,9 +3,9 @@ module ev_functions
 export evolve # implementation of the deterministic skeleton model
 export evolve_stocha # implementation of the stochastic skeleton model
 
-# using FFTW
-# using Statistics
-# using Random, Distributions
+ using FFTW
+ using Statistics
+ using Random, Distributions
 
 
 

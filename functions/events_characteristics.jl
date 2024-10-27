@@ -1,10 +1,10 @@
 module events
 
 
-#using LinearAlgebra
-#using Statistics
-#using FFTW
-#using PyPlot
+using LinearAlgebra
+using Statistics
+using FFTW
+using PyPlot
 
 function circleShape(h,k,r)
     θ = LinRange(0, 2*π, 500);
@@ -156,8 +156,8 @@ function identify(amplitude, phase)
     
     # step 4: find the initial and final day of each event (events of amplitude >1 and eastward movement)
     seq = zeros((num_events,2));
-    seq[1,1]=indices1[1]trailer;
-    i=1;trailer
+    seq[1,1]=indices1[1];
+    i=1;
     for cut in indices2[1:end]
         seq[i,2] = indices1[cut];
         seq[i+1,1] = indices1[indices2[i]+1];
@@ -589,8 +589,8 @@ function phase_space_diagram(SMM1, SMM2, ii1, ii2, amplitude, f1, f2, jj1, jj2, 
     #m, j = findmax(amplitude[ii1:ii2]);
     #axs.scatter(SMM1[ii1-1+j], SMM2[ii1-1+j], s=12, color = "red")
     
-    axs.set_xlabel("RMM1", fontsize = 10)
-    axs.set_ylabel("RMM2", fontsize = 10)
+    axs.set_xlabel("SMM1", fontsize = 10)
+    axs.set_ylabel("SMM2", fontsize = 10)
     
     savefig("RMM.png", dpi = 400, bbox_inches="tight")
 end

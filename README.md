@@ -32,5 +32,6 @@ This notebook contains the implementation of the stochastic MJO skeleton model, 
 
 **`Stochastic-skeleton-model-plots.ipynb`**
 
-This notebook is designed specifically to reproduce the plots presented in my thesis. The data required for the plots is available [here]([https://drive.proton.me/urls/3M5Y6MG06M\#tp9fYehpfMGK).
+This notebook is designed specifically to reproduce the plots presented in my thesis. The data required for the plots is available [here](https://drive.proton.me/urls/3M5Y6MG06M#tp9fYehpfMGK)
+.
 

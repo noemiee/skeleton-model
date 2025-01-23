@@ -24,7 +24,7 @@ Required python packages: `numpy`, `matplotlib`, `pandas`, `pickle`, `netCDF4`, 
 
 **`forcing-profiles.ipynb`**
 
-This notebook computes the model’s forcing based on the methodology presented in [Ogrosky and Stechman (2015)](https://doi.org/10.1002/qj.2552), while retaining the time-dependence of the profiles.
+This notebook computes the model’s forcing based on the methodology presented in [Ogrosky and Stechman (2015)](https://doi.org/10.1002/qj.2552), while retaining the time-dependence of the profiles. Note that the reanalyses data must be downloaded separately from the two sources above.
  
 **`Stochastic-skeleton-model-main.ipynb`**
 
@@ -33,5 +33,5 @@ This notebook contains the implementation of the stochastic MJO skeleton model, 
 **`Stochastic-skeleton-model-plots.ipynb`**
 
 This notebook is designed specifically to reproduce the plots presented in my thesis. The data required for the plots is available [here](https://drive.proton.me/urls/3M5Y6MG06M#tp9fYehpfMGK)
-.
+. The codes and data are also available on [DIGITAL.CSIC](https://doi.org/10.20350/digitalCSIC/17017).
 
